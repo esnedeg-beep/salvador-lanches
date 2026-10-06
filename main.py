@@ -25,7 +25,6 @@ def main(page: ft.Page):
   PURPLE = "#9D00FF"
   GREEN = "#39FF14"
   YELLOW = "#FFD700"
-
   
   
   # Carrinho de compras do cliente
