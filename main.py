@@ -255,8 +255,7 @@ def main(page: ft.Page):
         )
     ])
     page.update()
-    )  
-valor_pix_text = ft.Text(
+    valor_pix_text = ft.Text(
     "",
     size=20,
     color=GREEN,
