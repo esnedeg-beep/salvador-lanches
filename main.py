@@ -255,6 +255,14 @@ def main(page: ft.Page):
         )
     ])
     page.update()
+ 
+   )  
+valor_pix_text = ft.Text(
+    "",
+    size=20,
+    color=GREEN,
+    weight=ft.FontWeight.BOLD,
+)
 
   def btn_pix_click(e):
     executar_envio_whatsapp("PIX")
