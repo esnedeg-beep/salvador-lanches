@@ -267,20 +267,14 @@ def btn_retirada_click(e):
     executar_envio_whatsapp("PAGAR NA RETIRADA")
       
 def copiar_chave_pix(e):
-        page.update()
-        page.set_clipboard(CHAVE_PIX_SALVADOR)
-        page.snack_bar = ft.SnackBar(ft.Text("Chave Pix copiada!"))
-        page.snack_bar.open = True
-        page.update()
-  modal_pix = ft.AlertDialog(
-      bgcolor="#1F2833",
-     
-      title=ft.Text(
-          "📱 PAGAMENTO VIA PIX", color=CYAN, weight=ft.FontWeight.BOLD
-      ),
+    page.set_clipboard(CHAVE_PIX_SALVADOR)
+    page.snack_bar = ft.SnackBar(ft.Text("Chave Pix copiada!"))
+    page.snack_bar.open = True
+    page.update()
 
-     
-      content=ft.Container(
+
+modal_pix = ft.AlertDialog(
+    content=ft.Container(
           width=400,
           content=ft.Column(
               [
