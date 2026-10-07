@@ -342,25 +342,30 @@ modal_pix = ft.AlertDialog(
 def selecionar_pagamento(forma):
     nonlocal forma_pagamento_selecionada
     forma_pagamento_selecionada = forma
+
     if forma == "PIX":
-      btn_pix.style = ft.ButtonStyle(bgcolor={"": PURPLE})
-      btn_retirada.style = ft.ButtonStyle(bgcolor={"": "#111"})
+        btn_pix.style = ft.ButtonStyle(bgcolor={"": PURPLE})
+        btn_retirada.style = ft.ButtonStyle(bgcolor={"": "#111"})
     else:
-      btn_pix.style = ft.ButtonStyle(bgcolor={"": "#111"})
-      btn_retirada.style = ft.ButtonStyle(bgcolor={"": PURPLE})
+        btn_pix.style = ft.ButtonStyle(bgcolor={"": "#111"})
+        btn_retirada.style = ft.ButtonStyle(bgcolor={"": PURPLE})
+
     page.update()
 
-     btn_pix = ft.Button(
-      content=ft.Text("📱 PIX", color="#FFFFFF", weight=ft.FontWeight.BOLD),
-      style=ft.ButtonStyle(bgcolor={"": PURPLE}),
-      expand=True,
-      elevation=2,
-      on_click=lambda e: selecionar_pagamento("PIX"),
-  )
 
-  btn_retirada = ft.Button(
-      content=ft.Text(
-          "🏪 PAGAR NA RETIRADA", color="#FFFFFF", weight=ft.FontWeight.BOLD
+btn_pix = ft.Button(
+    content=ft.Text("📱 PIX", color="#FFFFFF", weight=ft.FontWeight.BOLD),
+    style=ft.ButtonStyle(bgcolor={"": PURPLE}),
+    expand=True,
+    elevation=2,
+    on_click=lambda e: selecionar_pagamento("PIX"),
+)
+ 
+btn_retirada = ft.Button(
+    content=ft.Text(
+        "🏪 PAGAR NA RETIRADA", 
+        color="#FFFFFF",            
+        weight=ft.FontWeight.BOLD
       ),
       style=ft.ButtonStyle(bgcolor={"": "#111"}),
       expand=True,
@@ -370,8 +375,8 @@ def selecionar_pagamento(forma):
 
   # Função para remover itens do carrinho
   def remover_do_carrinho(idx):
-    item_removido = carrinho.pop(idx)
-    page.snack_bar = ft.SnackBar(
+      item_removido = carrinho.pop(idx)
+      page.snack_bar = ft.SnackBar(
         content=ft.Text(f"🗑️ {item_removido['nome']} removido do carrinho!"),
         bgcolor="red",
     )
