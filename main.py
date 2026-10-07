@@ -350,7 +350,7 @@ def selecionar_pagamento(forma):
       btn_retirada.style = ft.ButtonStyle(bgcolor={"": PURPLE})
     page.update()
 
-  btn_pix = ft.Button(
+     btn_pix = ft.Button(
       content=ft.Text("📱 PIX", color="#FFFFFF", weight=ft.FontWeight.BOLD),
       style=ft.ButtonStyle(bgcolor={"": PURPLE}),
       expand=True,
