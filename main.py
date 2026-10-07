@@ -260,7 +260,7 @@ def main(page: ft.Page):
     color=GREEN,
     weight=ft.FontWeight.BOLD,
 )
-valor_pix_text = "Valor do Pix"
+      
   def btn_pix_click(e):
     executar_envio_whatsapp("PIX")
 
