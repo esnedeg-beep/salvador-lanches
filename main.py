@@ -252,21 +252,26 @@ def main(page: ft.Page):
                 right=ft.BorderSide(1, PURPLE),
             ),
         )
-    ])
-    page.update()
+    ])    page.update()
     valor_pix_text = ft.Text(
     "",
     size=20,
     color=GREEN,
     weight=ft.FontWeight.BOLD,
 )
-      
+  
   def btn_pix_click(e):
     executar_envio_whatsapp("PIX")
 
   def btn_retirada_click(e):
     executar_envio_whatsapp("PAGAR NA RETIRADA")
-  valor_pix_text = ft.Text("")
+  
+
+    def copiar_chave_pix(e):
+        page.set_clipboard(CHAVE_PIX_SALVADOR)
+        page.snack_bar = ft.SnackBar(ft.Text("Chave Pix copiada!"))
+        page.snack_bar.open = True
+        page.update()
   modal_pix = ft.AlertDialog(
       bgcolor="#1F2833",
       title=ft.Text(
