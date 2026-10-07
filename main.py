@@ -266,13 +266,13 @@ def main(page: ft.Page):
 
   def btn_retirada_click(e):
     executar_envio_whatsapp("PAGAR NA RETIRADA")
-
+  valor_pix_text = ft.Text("")
   modal_pix = ft.AlertDialog(
       bgcolor="#1F2833",
       title=ft.Text(
           "📱 PAGAMENTO VIA PIX", color=CYAN, weight=ft.FontWeight.BOLD
       ),
-valor_pix_text = ft.Text("")
+
      
       content=ft.Container(
           width=400,
