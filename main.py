@@ -272,6 +272,8 @@ def main(page: ft.Page):
       title=ft.Text(
           "📱 PAGAMENTO VIA PIX", color=CYAN, weight=ft.FontWeight.BOLD
       ),
+valor_pix_text = ft.Text("")
+     
       content=ft.Container(
           width=400,
           content=ft.Column(
@@ -282,10 +284,13 @@ def main(page: ft.Page):
                       color="#FFFFFF",
                       size=12,
                   ),
+                  
+                  
                   ft.Container(
                       content=ft.Column(
                           [
-                              ft.Icon(ft.Icons.QR_CODE_2, size=140, color=CYAN),
+                          
+                             ft.Icon(ft.Icons.QR_CODE_2, size=140, color=CYAN),
                               valor_pix_text,
                           ],
                           horizontal_alignment=ft.CrossAxisAlignment.CENTER,
