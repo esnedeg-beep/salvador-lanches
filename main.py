@@ -252,7 +252,9 @@ def main(page: ft.Page):
                 right=ft.BorderSide(1, PURPLE),
             ),
         )
-    ])    page.update()
+    ])   
+      
+      page.update()
     valor_pix_text = ft.Text(
     "",
     size=20,
