@@ -375,13 +375,13 @@ btn_retirada = ft.Button(
 
   # Função para remover itens do carrinho
 def remover_do_carrinho(idx):
-      item_removido = carrinho.pop(idx)
+      carrinho.pop(idx)
       page.snack_bar = ft.SnackBar(
-        content=ft.Text(f"🗑️ {item_removido['nome']} removido do carrinho!"),
-        bgcolor="red",
-    )
+          ft.Text("Item removido do carrinho!")
+       )
     page.snack_bar.open = True
-    
+    page.update()
+
     if len(carrinho) == 0:
       modal_checkout.open = False
       btn_ver_pedido.visible = False
