@@ -339,7 +339,7 @@ modal_pix = ft.AlertDialog(
       ],
   )
 
-  def selecionar_pagamento(forma):
+def selecionar_pagamento(forma):
     nonlocal forma_pagamento_selecionada
     forma_pagamento_selecionada = forma
     if forma == "PIX":
