@@ -260,13 +260,13 @@ valor_pix_text = ft.Text(
     weight=ft.FontWeight.BOLD,
 )
   
-  def btn_pix_click(e):
+def btn_pix_click(e):
     executar_envio_whatsapp("PIX")
 
-  def btn_retirada_click(e):
+def btn_retirada_click(e):
     executar_envio_whatsapp("PAGAR NA RETIRADA")
       
-    def copiar_chave_pix(e):
+def copiar_chave_pix(e):
         page.update()
         page.set_clipboard(CHAVE_PIX_SALVADOR)
         page.snack_bar = ft.SnackBar(ft.Text("Chave Pix copiada!"))
