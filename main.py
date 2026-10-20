@@ -24,7 +24,7 @@ def main(page: ft.Page):
 
   # Configurações do Salvador Lanches
   CHAVE_PIX_SALVADOR = "salvadorlanches@email.com"
-  NUMERO_WHATSAPP_SALVADOR = "5519995153349"  # <--- WhatsApp do Salvador Lanches atualizado!
+  NUMERO_WHATSAPP_SALVADOR = "5519989963063"  # <--- WhatsApp do Salvador Lanches atualizado!
 
   # Carrinho de compras do cliente
   carrinho = []
