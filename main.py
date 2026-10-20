@@ -1,16 +1,62 @@
-import threading
+import unicodedata
 import urllib.parse
-import webbrowser
+
 import flet as ft
 
+# ----------------------------------------------------------------------
+# CONFIGURAÇÕES DO SALVADOR LANCHES  (se precisar trocar algo, é aqui)
+# ----------------------------------------------------------------------
+NUMERO_WHATSAPP_SALVADOR = "5519989963063"  # 55 + DDD + número, só dígitos
+CHAVE_PIX_SALVADOR = "19995153349"  # CONFIRA se é a chave real
+NOME_PIX = "SALVADOR LANCHES"  # nome que aparece no banco (até 25 letras)
+CIDADE_PIX = "SANTA BÁRBARA DOESTE"  # cidade do carrinho, sem acento (até 15 letras)
 
-def main(page: ft.Page):
+
+# ----------------------------------------------------------------------
+# PIX COPIA E COLA (o cliente cola no app do banco e o valor já vem certo)
+# ----------------------------------------------------------------------
+def _ascii(texto):
+  sem_acento = unicodedata.normalize("NFKD", texto)
+  return sem_acento.encode("ascii", "ignore").decode("ascii")
+
+
+def _campo_pix(identificador, valor):
+  return f"{identificador}{len(valor):02d}{valor}"
+
+
+def _crc16_pix(texto):
+  crc = 0xFFFF
+  for byte in texto.encode("ascii"):
+    crc ^= byte << 8
+    for _ in range(8):
+      crc = ((crc << 1) ^ 0x1021) if crc & 0x8000 else (crc << 1)
+      crc &= 0xFFFF
+  return f"{crc:04X}"
+
+
+def gerar_pix_copia_e_cola(chave, valor, nome, cidade):
+  conta = _campo_pix("00", "br.gov.bcb.pix") + _campo_pix("01", chave)
+  payload = (
+      _campo_pix("00", "01")
+      + _campo_pix("01", "11")
+      + _campo_pix("26", conta)
+      + _campo_pix("52", "0000")
+      + _campo_pix("53", "986")
+      + _campo_pix("54", f"{valor:.2f}")
+      + _campo_pix("58", "BR")
+      + _campo_pix("59", _ascii(nome)[:25])
+      + _campo_pix("60", _ascii(cidade)[:15])
+      + _campo_pix("62", _campo_pix("05", "***"))
+      + "6304"
+  )
+  return payload + _crc16_pix(payload)
+
+
+async def main(page: ft.Page):
   page.title = "SALVADOR LANCHES - CLIENTE"
   page.theme_mode = ft.ThemeMode.DARK
   page.bgcolor = "#0B0C10"
   page.scroll = ft.ScrollMode.AUTO
-  page.window_width = 450
-  page.window_height = 800
 
   # Cores Neon
   CYAN = "#00FFFF"
@@ -18,13 +64,9 @@ def main(page: ft.Page):
   GREEN = "#39FF14"
   YELLOW = "#FFD700"
 
-  # Imagens
-  FOTO_SALVADOR = "salvador.png"
+  # Imagens (a foto do Salvador fica na pasta "assets")
+  FOTO_SALVADOR = "/salvador.png"
   FOTO_LANCHE_ILUSTRATIVA = "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=150&auto=format&fit=crop&q=80"
-
-  # Configurações do Salvador Lanches
-  CHAVE_PIX_SALVADOR = "salvadorlanches@email.com"
-  NUMERO_WHATSAPP_SALVADOR = "5519989963063"  # <--- WhatsApp do Salvador Lanches atualizado!
 
   # Carrinho de compras do cliente
   carrinho = []
@@ -40,9 +82,6 @@ def main(page: ft.Page):
   lista_revisao_ui = ft.Column(spacing=5)
   total_revisao_ui = ft.Text(
       "", size=18, color=YELLOW, weight=ft.FontWeight.BOLD
-  )
-  status_missao_ui = ft.Column(
-      spacing=10, horizontal_alignment=ft.CrossAxisAlignment.CENTER
   )
 
   txt_nome_player = ft.TextField(
@@ -304,8 +343,7 @@ def main(page: ft.Page):
             size=16,
         ),
     ])
-    modal_customizar.open = True
-    page.update()
+    page.show_dialog(modal_customizar)
 
   def gerenciar_ingredientes(e, ingrediente):
     if not e.control.value:
@@ -342,7 +380,7 @@ def main(page: ft.Page):
         "com": [item["nome"] for item in adicionais_escolhidos],
     })
 
-    modal_customizar.open = False
+    page.pop_dialog()
     btn_ver_pedido.content = ft.Text(
         f"🛒 VER MEU PEDIDO ({len(carrinho)} ITEM/NS)",
         color="#0B0C10",
@@ -358,6 +396,7 @@ def main(page: ft.Page):
   comp_adicionais = ft.Column(spacing=2, scroll=ft.ScrollMode.AUTO)
 
   modal_customizar = ft.AlertDialog(
+      modal=True,
       bgcolor="#1F2833",
       content=ft.Container(
           width=400,
@@ -423,40 +462,40 @@ def main(page: ft.Page):
               elevation=2,
               on_click=confirmar_e_adicionar_ao_carrinho,
           ),
-          ft.TextButton(
-              "CANCELAR",
-              on_click=lambda e: setattr(modal_customizar, "open", False)
-              or page.update(),
-          ),
+          ft.TextButton("CANCELAR", on_click=lambda e: page.pop_dialog()),
       ],
   )
 
+  # --- PIX (copia e cola) ---
+  codigo_pix_atual = ""
+  codigo_pix_ui = ft.Text(
+      "", size=11, color="#FFFFFF", selectable=True, text_align=ft.TextAlign.CENTER
+  )
   valor_pix_text = ft.Text(
       "", size=20, color=GREEN, weight=ft.FontWeight.BOLD
   )
+  aviso_copia_ui = ft.Text(
+      "", size=12, color=GREEN, weight=ft.FontWeight.BOLD
+  )
 
-  def copiar_chave_pix(e):
+  async def copiar_codigo_pix(e):
     try:
-      import tkinter as tk
-
-      root = tk.Tk()
-      root.withdraw()
-      root.clipboard_clear()
-      root.clipboard_append(CHAVE_PIX_SALVADOR)
-      root.update()
-      root.destroy()
+      await ft.Clipboard().set(codigo_pix_atual)
+      aviso_copia_ui.value = "✅ Código copiado! Cole no app do seu banco."
     except Exception:
-      pass
-
-    page.snack_bar = ft.SnackBar(
-        ft.Text("📋 Chave PIX copiada para a área de transferência!"),
-        bgcolor=GREEN,
-    )
-    page.snack_bar.open = True
+      aviso_copia_ui.value = "Não consegui copiar. Segure o código e copie."
     page.update()
 
-  # --- ENVIO DO WHATSAPP + TELA DE STATUS ---
-  def executar_envio_whatsapp(tipo_pagamento):
+  # --- ENVIO DO WHATSAPP ---
+  modal_final = ft.AlertDialog(modal=True, bgcolor="#1F2833")
+
+  def pedido_enviado(e):
+    carrinho.clear()
+    btn_ver_pedido.visible = False
+    page.pop_dialog()
+    page.update()
+
+  def finalizar_pedido(tipo_pagamento):
     nome_cliente = txt_nome_player.value.strip().upper()
     total_geral = sum(item["preco_total"] for item in carrinho)
 
@@ -476,138 +515,145 @@ def main(page: ft.Page):
     msg += f"📱 *Forma de Pagamento:* {tipo_pagamento}\n\n"
 
     if tipo_pagamento == "PIX":
-      msg += (
-          "📌 *Anexando o comprovante do PIX abaixo para confirmar o"
-          " preparo!*"
-      )
+      msg += "📌 *Vou enviar o comprovante do PIX logo em seguida!*"
     else:
       msg += "📌 *Pagamento será realizado no momento da retirada!*"
 
-    msg_url = urllib.parse.quote(msg)
     link_whatsapp = (
-        f"https://wa.me/{NUMERO_WHATSAPP_SALVADOR}?text={msg_url}"
+        f"https://wa.me/{NUMERO_WHATSAPP_SALVADOR}"
+        f"?text={urllib.parse.quote(msg)}"
     )
-
-    threading.Thread(
-        target=lambda: webbrowser.open(link_whatsapp), daemon=True
-    ).start()
-
-    modal_pix.open = False
-    modal_checkout.open = False
-    btn_ver_pedido.visible = False
-    carrinho.clear()
 
     texto_instrucao = (
-        "Envie o comprovante na conversa para iniciar o preparo!"
+        "Depois de enviar, mande também o comprovante do PIX na conversa!"
         if tipo_pagamento == "PIX"
-        else "Aguarde a confirmação da recepção pelo WhatsApp!"
+        else "Aguarde a confirmação do seu pedido pelo WhatsApp!"
     )
 
-    status_missao_ui.controls.clear()
-    status_missao_ui.controls.extend([
-        ft.Container(
-            content=ft.Column(
-                [
-                    ft.Icon(ft.Icons.TIMER, color=YELLOW, size=50),
-                    ft.Text(
-                        "⚡ PEDIDO ENVIADO! ⚡",
-                        color=YELLOW,
-                        size=20,
+    modal_final.title = ft.Text(
+        "📲 ÚLTIMO PASSO!", color=YELLOW, weight=ft.FontWeight.BOLD
+    )
+    modal_final.content = ft.Container(
+        width=400,
+        content=ft.Column(
+            [
+                ft.Text(
+                    "Seu pedido ainda NÃO foi enviado. Toque no botão verde:"
+                    " o WhatsApp abre com tudo pronto e você só aperta"
+                    " ENVIAR.",
+                    color="#FFFFFF",
+                    size=13,
+                    text_align=ft.TextAlign.CENTER,
+                ),
+                ft.Button(
+                    content=ft.Text(
+                        "ABRIR WHATSAPP E ENVIAR 📲",
+                        color="#0B0C10",
                         weight=ft.FontWeight.BOLD,
                     ),
-                    ft.Text(
-                        f"Cliente: {nome_cliente}",
-                        color=CYAN,
-                        size=15,
+                    bgcolor=GREEN,
+                    elevation=2,
+                    url=link_whatsapp,
+                ),
+                ft.Text(
+                    f"Cliente: {nome_cliente}",
+                    color=CYAN,
+                    size=15,
+                    weight=ft.FontWeight.BOLD,
+                ),
+                ft.Text("Tempo estimado de preparo:", color="#FFFFFF", size=13),
+                ft.Container(
+                    content=ft.Text(
+                        "⏱️ 15 A 25 MINUTOS",
+                        color="#0B0C10",
                         weight=ft.FontWeight.BOLD,
+                        size=16,
                     ),
-                    ft.Text(
-                        "Tempo estimado de preparo:", color="#FFFFFF", size=13
+                    bgcolor=GREEN,
+                    padding=10,
+                    border_radius=5,
+                ),
+                ft.Container(
+                    content=ft.Column(
+                        [
+                            ft.Row(
+                                [
+                                    ft.Icon(
+                                        ft.Icons.NOTIFICATIONS_ACTIVE,
+                                        color=CYAN,
+                                        size=22,
+                                    ),
+                                    ft.Text(
+                                        "AVISO IMPORTANTE",
+                                        color=CYAN,
+                                        weight=ft.FontWeight.BOLD,
+                                        size=13,
+                                    ),
+                                ],
+                                alignment=ft.MainAxisAlignment.CENTER,
+                            ),
+                            ft.Text(
+                                "🔔 VOCÊ SERÁ NOTIFICADO PELO WHATSAPP"
+                                " ASSIM QUE SEU PEDIDO ESTIVER PRONTO!",
+                                color="#FFFFFF",
+                                weight=ft.FontWeight.BOLD,
+                                size=12,
+                                text_align=ft.TextAlign.CENTER,
+                            ),
+                            ft.Text(
+                                texto_instrucao,
+                                color=YELLOW,
+                                size=11,
+                                italic=True,
+                                text_align=ft.TextAlign.CENTER,
+                            ),
+                        ],
+                        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                        spacing=6,
                     ),
-                    ft.Container(
-                        content=ft.Text(
-                            "⏱️ 15 A 25 MINUTOS",
-                            color="#0B0C10",
-                            weight=ft.FontWeight.BOLD,
-                            size=18,
-                        ),
-                        bgcolor=GREEN,
-                        padding=10,
-                        border_radius=5,
+                    padding=12,
+                    bgcolor="#0B0C10",
+                    border=ft.Border(
+                        top=ft.BorderSide(2, CYAN),
+                        bottom=ft.BorderSide(2, CYAN),
+                        left=ft.BorderSide(2, CYAN),
+                        right=ft.BorderSide(2, CYAN),
                     ),
-                    ft.Container(
-                        content=ft.Column(
-                            [
-                                ft.Row(
-                                    [
-                                        ft.Icon(
-                                            ft.Icons.NOTIFICATIONS_ACTIVE,
-                                            color=CYAN,
-                                            size=22,
-                                        ),
-                                        ft.Text(
-                                            "AVISO IMPORTANTE",
-                                            color=CYAN,
-                                            weight=ft.FontWeight.BOLD,
-                                            size=13,
-                                        ),
-                                    ],
-                                    alignment=ft.MainAxisAlignment.CENTER,
-                                ),
-                                ft.Text(
-                                    "🔔 VOCÊ SERÁ NOTIFICADO PELO WHATSAPP"
-                                    " ASSIM QUE SEU PEDIDO ESTIVER PRONTO!",
-                                    color="#FFFFFF",
-                                    weight=ft.FontWeight.BOLD,
-                                    size=12,
-                                    text_align=ft.TextAlign.CENTER,
-                                ),
-                                ft.Text(
-                                    texto_instrucao,
-                                    color=YELLOW,
-                                    size=11,
-                                    italic=True,
-                                    text_align=ft.TextAlign.CENTER,
-                                ),
-                            ],
-                            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                            spacing=6,
-                        ),
-                        padding=12,
-                        bgcolor="#0B0C10",
-                        border=ft.Border(
-                            top=ft.BorderSide(2, CYAN),
-                            bottom=ft.BorderSide(2, CYAN),
-                            left=ft.BorderSide(2, CYAN),
-                            right=ft.BorderSide(2, CYAN),
-                        ),
-                        border_radius=8,
-                        margin=ft.Margin(0, 10, 0, 0),
-                    ),
-                ],
-                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                spacing=8,
+                    border_radius=8,
+                ),
+            ],
+            tight=True,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            spacing=10,
+            scroll=ft.ScrollMode.AUTO,
+        ),
+    )
+    modal_final.actions = [
+        ft.Button(
+            content=ft.Text(
+                "JÁ ENVIEI ✅",
+                color="#0B0C10",
+                weight=ft.FontWeight.BOLD,
             ),
-            padding=15,
-            bgcolor="#1F2833",
-            border_radius=10,
-            border=ft.Border(
-                top=ft.BorderSide(1, PURPLE),
-                bottom=ft.BorderSide(1, PURPLE),
-                left=ft.BorderSide(1, PURPLE),
-                right=ft.BorderSide(1, PURPLE),
-            ),
-        )
-    ])
-    page.update()
+            bgcolor=YELLOW,
+            elevation=2,
+            on_click=pedido_enviado,
+        ),
+        ft.TextButton("VOLTAR", on_click=lambda e: page.pop_dialog()),
+    ]
+
+    page.pop_dialog()  # fecha o resumo do pedido ou a tela do PIX
+    page.show_dialog(modal_final)
 
   def btn_pix_click(e):
-    executar_envio_whatsapp("PIX")
+    finalizar_pedido("PIX")
 
-  def btn_retirada_click(e):
-    executar_envio_whatsapp("PAGAR NA RETIRADA")
+  def voltar_do_pix(e):
+    page.pop_dialog()
+    page.show_dialog(modal_checkout)
 
   modal_pix = ft.AlertDialog(
+      modal=True,
       bgcolor="#1F2833",
       title=ft.Text(
           "📱 PAGAMENTO VIA PIX", color=CYAN, weight=ft.FontWeight.BOLD
@@ -617,48 +663,53 @@ def main(page: ft.Page):
           content=ft.Column(
               [
                   ft.Text(
-                      "Escaneie o QR Code ou copie a chave para realizar o"
-                      " pagamento:",
+                      "1) Toque em COPIAR CÓDIGO PIX\n"
+                      "2) No app do seu banco, escolha Pix > Copia e Cola\n"
+                      "3) Pague e volte aqui para enviar o pedido",
                       color="#FFFFFF",
                       size=12,
                   ),
+                  valor_pix_text,
                   ft.Container(
-                      content=ft.Column(
-                          [
-                              ft.Icon(ft.Icons.QR_CODE_2, size=140, color=CYAN),
-                              valor_pix_text,
-                          ],
-                          horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                      ),
-                      alignment=ft.Alignment(0, 0),
-                      padding=10,
-                  ),
-                  ft.Text(
-                      f"Chave PIX: {CHAVE_PIX_SALVADOR}",
-                      color=YELLOW,
-                      size=12,
-                      weight=ft.FontWeight.BOLD,
+                      content=codigo_pix_ui,
+                      padding=8,
+                      bgcolor="#0B0C10",
+                      border_radius=5,
                   ),
                   ft.Button(
                       content=ft.Text(
-                          "📋 COPIAR CHAVE PIX",
+                          "📋 COPIAR CÓDIGO PIX",
                           color="#FFFFFF",
                           weight=ft.FontWeight.BOLD,
                       ),
                       style=ft.ButtonStyle(bgcolor={"": PURPLE}),
                       elevation=2,
-                      on_click=copiar_chave_pix,
+                      on_click=copiar_codigo_pix,
+                  ),
+                  aviso_copia_ui,
+                  ft.Text(
+                      "Se o botão não copiar, segure o código acima com o"
+                      " dedo e escolha Copiar.",
+                      color="#A9A9A9",
+                      size=11,
+                  ),
+                  ft.Text(
+                      f"Chave PIX: {CHAVE_PIX_SALVADOR}",
+                      color=YELLOW,
+                      size=11,
+                      selectable=True,
                   ),
               ],
               tight=True,
               horizontal_alignment=ft.CrossAxisAlignment.CENTER,
               spacing=10,
+              scroll=ft.ScrollMode.AUTO,
           ),
       ),
       actions=[
           ft.Button(
               content=ft.Text(
-                  "PAGUEI! ENVIAR COMPROVANTE 🚀",
+                  "PAGUEI! ENVIAR PEDIDO 🚀",
                   color="#0B0C10",
                   weight=ft.FontWeight.BOLD,
               ),
@@ -666,11 +717,7 @@ def main(page: ft.Page):
               elevation=2,
               on_click=btn_pix_click,
           ),
-          ft.TextButton(
-              "VOLTAR",
-              on_click=lambda e: setattr(modal_pix, "open", False)
-              or page.update(),
-          ),
+          ft.TextButton("VOLTAR", on_click=voltar_do_pix),
       ],
   )
 
@@ -740,29 +787,31 @@ def main(page: ft.Page):
       )
 
     total_revisao_ui.value = f"TOTAL A PAGAR: R$ {total_geral:.2f}"
-    modal_checkout.open = True
-    page.update()
+    page.show_dialog(modal_checkout)
 
   def processar_pagamento(e):
+    nonlocal codigo_pix_atual
     if not txt_nome_player.value.strip():
-      page.snack_bar = ft.SnackBar(
-          ft.Text("⚠️ Por favor, informe seu nome para identificar o pedido!"),
-          bgcolor="red",
-      )
-      page.snack_bar.open = True
+      txt_nome_player.error_text = "Informe seu nome para identificar o pedido"
       page.update()
       return
+    txt_nome_player.error_text = None
 
     if forma_pagamento_selecionada == "PIX":
-      modal_checkout.open = False
       total_geral = sum(item["preco_total"] for item in carrinho)
+      codigo_pix_atual = gerar_pix_copia_e_cola(
+          CHAVE_PIX_SALVADOR, total_geral, NOME_PIX, CIDADE_PIX
+      )
+      codigo_pix_ui.value = codigo_pix_atual
       valor_pix_text.value = f"R$ {total_geral:.2f}"
-      modal_pix.open = True
-      page.update()
+      aviso_copia_ui.value = ""
+      page.pop_dialog()  # fecha o resumo do pedido
+      page.show_dialog(modal_pix)
     else:
-      executar_envio_whatsapp("PAGAR NA RETIRADA")
+      finalizar_pedido("PAGAR NA RETIRADA")
 
   modal_checkout = ft.AlertDialog(
+      modal=True,
       bgcolor="#1F2833",
       title=ft.Text(
           "⚔️ REVISAR SEU COMBO", color=CYAN, weight=ft.FontWeight.BOLD
@@ -786,6 +835,7 @@ def main(page: ft.Page):
               ],
               tight=True,
               spacing=12,
+              scroll=ft.ScrollMode.AUTO,
           ),
       ),
       actions=[
@@ -799,20 +849,9 @@ def main(page: ft.Page):
               elevation=2,
               on_click=processar_pagamento,
           ),
-          ft.TextButton(
-              "VOLTAR",
-              on_click=lambda e: setattr(modal_checkout, "open", False)
-              or page.update(),
-          ),
+          ft.TextButton("VOLTAR", on_click=lambda e: page.pop_dialog()),
       ],
   )
-
-  # Adiciona os modais ao overlay
-  page.overlay.extend([
-      modal_customizar,
-      modal_checkout,
-      modal_pix,
-  ])
 
   lista_lanches_ui = ft.Column(spacing=10)
   for lanche in cardapio:
@@ -932,8 +971,6 @@ def main(page: ft.Page):
           content=ft.Column([
               cabecalho_perfil,
               ft.Divider(color=PURPLE),
-              status_missao_ui,
-              ft.Divider(color=CYAN),
               ft.Row(
                   [
                       ft.Text(
