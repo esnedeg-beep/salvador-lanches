@@ -1,1 +1,2 @@
-flet
+flet[web]>=1.0,<2
+fastapi<0.115
